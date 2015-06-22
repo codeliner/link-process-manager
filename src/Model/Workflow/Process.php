@@ -12,6 +12,7 @@ namespace Prooph\Link\ProcessManager\Model\Workflow;
 
 use Assert\Assertion;
 use Prooph\Link\ProcessManager\Model\Task\TaskId;
+use Prooph\Link\ProcessManager\Model\Task;
 
 /**
  * Class Process
@@ -103,6 +104,33 @@ final class Process
     public function addTask(TaskId $taskId)
     {
         $this->taskList[] = $taskId;
+    }
+
+    public function isLinkedWithTask(TaskId $taskId)
+    {
+        $isLinked = false;
+
+        foreach ($this->taskList as $connectedTaskId) {
+            if ($connectedTaskId->equals($taskId)) {
+                $isLinked = true;
+            }
+        }
+
+        return $isLinked;
+    }
+
+    /**
+     * @param TaskId $taskId
+     * @return bool
+     */
+    public function unlinkTask(TaskId $taskId)
+    {
+        foreach ($this->taskList as $position => $connectedTaskId) {
+            if ($connectedTaskId->equals($taskId)) {
+                unset($this->taskList[$position]);
+                $this->taskList = array_values($this->taskList);
+            }
+        }
     }
 
     /**

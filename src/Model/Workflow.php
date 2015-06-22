@@ -12,10 +12,12 @@ namespace Prooph\Link\ProcessManager\Model;
 
 use Assert\Assertion;
 use Prooph\EventSourcing\AggregateRoot;
+use Prooph\Link\ProcessManager\Model\Task\TaskId;
 use Prooph\Link\ProcessManager\Model\Task\TaskType;
 use Prooph\Link\ProcessManager\Model\Workflow\Exception\MessageIsNotManageable;
 use Prooph\Link\ProcessManager\Model\Workflow\Exception\StartTaskIsAlreadyDefined;
 use Prooph\Link\ProcessManager\Model\Workflow\Exception\TaskProcessNotFound;
+use Prooph\Link\ProcessManager\Model\Workflow\Exception\UnlinkTaskFailed;
 use Prooph\Link\ProcessManager\Model\Workflow\Exception\WorkflowReleaseAlreadyExists;
 use Prooph\Link\ProcessManager\Model\Workflow\Message;
 use Prooph\Link\ProcessManager\Model\Workflow\Process;
@@ -24,6 +26,7 @@ use Prooph\Link\ProcessManager\Model\Workflow\ProcessType;
 use Prooph\Link\ProcessManager\Model\Workflow\ProcessWasAddedToWorkflow;
 use Prooph\Link\ProcessManager\Model\Workflow\StartMessageWasAssignedToWorkflow;
 use Prooph\Link\ProcessManager\Model\Workflow\TaskWasAddedToProcess;
+use Prooph\Link\ProcessManager\Model\Workflow\TaskWasUnlinked;
 use Prooph\Link\ProcessManager\Model\Workflow\WorkflowId;
 use Prooph\Link\ProcessManager\Model\Workflow\WorkflowNameWasChanged;
 use Prooph\Link\ProcessManager\Model\Workflow\WorkflowPublisher;
@@ -371,6 +374,28 @@ final class Workflow extends AggregateRoot
     }
 
     /**
+     * @param ProcessId $processId
+     * @param TaskId $taskId
+     * @throws Workflow\Exception\UnlinkTaskFailed
+     */
+    public function unlinkTaskFromProcess(ProcessId $processId, TaskId $taskId)
+    {
+        $success = false;
+
+        foreach($this->processList as $process) {
+            if ($process->id()->equals($processId)) {
+                $success = $process->isLinkedWithTask($taskId);
+            }
+        }
+
+        if (!$success) {
+            throw UnlinkTaskFailed::connectionData($this->workflowId(), $processId, $taskId);
+        }
+
+        $this->recordThat(TaskWasUnlinked::fromConnection($this->workflowId(), $processId, $taskId));
+    }
+
+    /**
      * @return string representation of the unique identifier of the aggregate root
      */
     protected function aggregateId()
@@ -431,5 +456,17 @@ final class Workflow extends AggregateRoot
     protected function whenWorkflowWasReleased(WorkflowWasReleased $event)
     {
         $this->currentReleaseNumber = $event->releaseNumber();
+    }
+
+    /**
+     * @param TaskWasUnlinked $event
+     */
+    protected function whenTaskWasUnlinked(TaskWasUnlinked $event)
+    {
+        foreach ($this->processList as $process) {
+            if ($process->id()->equals($event->processId())) {
+                $process->unlinkTask($event->taskId());
+            }
+        }
     }
 }

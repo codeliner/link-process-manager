@@ -16,6 +16,7 @@ use Prooph\Link\ProcessManager\Model\Task\TaskId;
 use Prooph\Link\ProcessManager\Model\Task\TaskMetadataWasUpdated;
 use Prooph\Link\ProcessManager\Model\Task\TaskWasSetUp;
 use Prooph\Link\ProcessManager\Model\Workflow\TaskWasAddedToProcess;
+use Prooph\Link\ProcessManager\Model\Workflow\TaskWasUnlinked;
 use Prooph\Link\ProcessManager\Projection\Tables;
 
 /**
@@ -50,6 +51,15 @@ final class TaskProjector implements ApplicationDbAware
         $this->connection->update(
             Tables::TASK,
             ['metadata' => json_encode($event->taskMetadata()->toArray())],
+            ['id' => $event->taskId()->toString()]
+        );
+    }
+
+    public function onTaskWasUnlinked(TaskWasUnlinked $event)
+    {
+        $this->connection->update(
+            Tables::TASK,
+            ['workflow_id' => null, 'process_id' => null],
             ['id' => $event->taskId()->toString()]
         );
     }

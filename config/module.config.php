@@ -246,6 +246,7 @@ return array(
             \Prooph\Link\ProcessManager\Model\MessageHandler\InstallMessageHandlerHandler::class => \Prooph\Link\ProcessManager\Infrastructure\Factory\InstallMessageHandlerHandlerFactory::class,
             \Prooph\Link\ProcessManager\Model\Task\UpdateTaskMetadataHandler::class => \Prooph\Link\ProcessManager\Infrastructure\Factory\UpdateTaskMetadataHandlerFactory::class,
             \Prooph\Link\ProcessManager\Model\Workflow\PublishWorkflowHandler::class => \Prooph\Link\ProcessManager\Infrastructure\Factory\PublishWorkflowHandlerFactory::class,
+            \Prooph\Link\ProcessManager\Model\Workflow\UnlinkTaskHandler::class => \Prooph\Link\ProcessManager\Infrastructure\Factory\UnlinkTaskHandlerFactory::class,
             'prooph.link.pm.workflow_collection' => \Prooph\Link\ProcessManager\Infrastructure\Factory\WorkflowCollectionFactory::class,
             'prooph.link.pm.message_handler_collection' => \Prooph\Link\ProcessManager\Infrastructure\Factory\MessageHandlerCollectionFactory::class,
             'prooph.link.pm.task_collection' => \Prooph\Link\ProcessManager\Infrastructure\Factory\TaskCollectionFactory::class,
@@ -294,6 +295,7 @@ return array(
             \Prooph\Link\ProcessManager\Command\Workflow\ScheduleNextTasksForWorkflow::class => \Prooph\Link\ProcessManager\Model\Workflow\ScheduleNextTasksForWorkflowHandler::class,
             \Prooph\Link\ProcessManager\Command\Task\UpdateTaskMetadata::class => \Prooph\Link\ProcessManager\Model\Task\UpdateTaskMetadataHandler::class,
             \Prooph\Link\ProcessManager\Command\Workflow\PublishWorkflow::class => \Prooph\Link\ProcessManager\Model\Workflow\PublishWorkflowHandler::class,
+            \Prooph\Link\ProcessManager\Command\Workflow\UnlinkTask::class => \Prooph\Link\ProcessManager\Model\Workflow\UnlinkTaskHandler::class,
         ],
         'event_router_map' => [
             \Prooph\Link\ProcessManager\Model\Workflow\WorkflowWasCreated::class => [
@@ -322,6 +324,9 @@ return array(
             ],
             \Prooph\Link\ProcessManager\Model\Workflow\WorkflowWasReleased::class => [
                 \Prooph\Link\ProcessManager\Projection\Workflow\WorkflowProjector::class,
+            ],
+            \Prooph\Link\ProcessManager\Model\Workflow\TaskWasUnlinked::class => [
+                \Prooph\Link\ProcessManager\Projection\Task\TaskProjector::class,
             ],
         ],
     ],

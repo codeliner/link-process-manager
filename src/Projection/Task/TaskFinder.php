@@ -27,6 +27,15 @@ final class TaskFinder implements ApplicationDbAware
     private $connection;
 
     /**
+     * @param $id
+     * @return array|null
+     */
+    public function find($id)
+    {
+        return $this->connection->fetchAssoc('SELECT * FROM ' . Tables::TASK . ' WHERE id = :id', ['id' => $id]);
+    }
+
+    /**
      * @return array of task data
      */
     public function findAll()

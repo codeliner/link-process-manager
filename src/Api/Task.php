@@ -12,6 +12,7 @@ namespace Prooph\Link\ProcessManager\Api;
 
 use Prooph\Link\Application\Service\AbstractRestController;
 use Prooph\Link\Application\Service\ActionController;
+use Prooph\Link\ProcessManager\Command\Workflow\UnlinkTask;
 use Prooph\Link\ProcessManager\Command\Task\UpdateTaskMetadata;
 use Prooph\Link\ProcessManager\Projection\Task\TaskFinder;
 use Prooph\ServiceBus\CommandBus;
@@ -52,6 +53,22 @@ final class Task extends AbstractRestController implements ActionController
         if (! array_key_exists('metadata', $data)) return $this->apiProblem(422, "No metadata given for the task");
 
         $this->commandBus->dispatch(UpdateTaskMetadata::to($data['metadata'], $id));
+
+        return $this->accepted();
+    }
+
+    public function delete($id)
+    {
+        $task = $this->taskFinder->find($id);
+
+        //@todo: here we go
+        //UnlinkTask command with workflowId and ProcessId which is passed to workflow to find process and invoke unlink task
+        //Then dispatch event TaskWasUnlinked and let a process manager listen on the event to trigger a deactivate task command
+        if (!$task) {
+            return $this->notFoundAction();
+        }
+
+        $this->commandBus->dispatch(UnlinkTask::fromConnection($task['workflow_id'], $task['process_id'], $task['id']));
 
         return $this->accepted();
     }
