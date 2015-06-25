@@ -32,7 +32,7 @@ final class TaskFinder implements ApplicationDbAware
      */
     public function find($id)
     {
-        return $this->connection->fetchAssoc('SELECT * FROM ' . Tables::TASK . ' WHERE id = :id', ['id' => $id]);
+        return $this->connection->fetchAssoc('SELECT * FROM ' . Tables::TASK . ' WHERE id = :id AND activated = 1', ['id' => $id]);
     }
 
     /**
@@ -40,7 +40,7 @@ final class TaskFinder implements ApplicationDbAware
      */
     public function findAll()
     {
-        $tasks = $this->connection->fetchAll('SELECT * FROM ' . Tables::TASK);
+        $tasks = $this->connection->fetchAll('SELECT * FROM ' . Tables::TASK . ' WHERE activated = 1');
 
         foreach($tasks as &$task) {
             $this->fromDatabase($task);
@@ -55,7 +55,7 @@ final class TaskFinder implements ApplicationDbAware
      */
     public function findTasksOfMessageHandler($messageHandlerId)
     {
-        $tasks = $this->connection->fetchAll('SELECT * FROM ' . Tables::TASK . ' WHERE message_handler_id = :mhid', ['mhid' => $messageHandlerId]);
+        $tasks = $this->connection->fetchAll('SELECT * FROM ' . Tables::TASK . ' WHERE message_handler_id = :mhid AND activated = 1', ['mhid' => $messageHandlerId]);
 
         foreach($tasks as &$task) {
             $this->fromDatabase($task);

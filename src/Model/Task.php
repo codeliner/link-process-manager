@@ -12,9 +12,13 @@ namespace Prooph\Link\ProcessManager\Model;
 
 use Prooph\EventSourcing\AggregateRoot;
 use Prooph\Link\ProcessManager\Model\MessageHandler\MessageHandlerId;
+use Prooph\Link\ProcessManager\Model\Task\Exception\BadMethodCallOnDeactivatedTask;
+use Prooph\Link\ProcessManager\Model\Task\Exception\DisconnectUnknownMessageHandlerNotPossible;
+use Prooph\Link\ProcessManager\Model\Task\MessageHandlerWasDisconnected;
 use Prooph\Link\ProcessManager\Model\Task\TaskId;
 use Prooph\Link\ProcessManager\Model\Task\TaskMetadataWasUpdated;
 use Prooph\Link\ProcessManager\Model\Task\TaskType;
+use Prooph\Link\ProcessManager\Model\Task\TaskWasDeactivated;
 use Prooph\Link\ProcessManager\Model\Task\TaskWasSetUp;
 use Prooph\Link\ProcessManager\Model\Workflow\Message;
 use Prooph\Link\ProcessManager\Model\Workflow\MessageType;
@@ -58,6 +62,11 @@ final class Task extends AggregateRoot
     private $processingMetadata;
 
     /**
+     * @var bool
+     */
+    private $active;
+
+    /**
      * @param MessageHandler $messageHandler
      * @param TaskType $taskType
      * @param Prototype $processingType
@@ -77,18 +86,27 @@ final class Task extends AggregateRoot
      * Simply override existing metadata with the new one
      *
      * @param ProcessingMetadata $metadata
+     * @throws Task\Exception\BadMethodCallOnDeactivatedTask
      */
     public function updateMetadata(ProcessingMetadata $metadata)
     {
+        if (! $this->active) {
+            throw BadMethodCallOnDeactivatedTask::withId($this->id());
+        }
         $this->recordThat(TaskMetadataWasUpdated::record($this->id(), $metadata));
     }
 
     /**
-     * @return Message
      * @throws \RuntimeException
+     * @throws Task\Exception\BadMethodCallOnDeactivatedTask
+     * @return Message
      */
     public function emulateWorkflowMessage()
     {
+        if (! $this->active) {
+            throw BadMethodCallOnDeactivatedTask::withId($this->id());
+        }
+
         if ($this->type()->isCollectData()) {
             $messageType = MessageType::collectData();
         } elseif ($this->type()->isProcessData()) {
@@ -101,6 +119,28 @@ final class Task extends AggregateRoot
         }
 
         return Message::emulateProcessingWorkflowMessage($messageType, $this->processingType(), $this->metadata());
+    }
+
+    /**
+     * @param MessageHandler $messageHandler
+     * @throws Task\Exception\DisconnectUnknownMessageHandlerNotPossible
+     */
+    public function disconnectMessageHandler(MessageHandler $messageHandler)
+    {
+        if (! $this->messageHandlerId()->equals($messageHandler->messageHandlerId())) {
+            throw DisconnectUnknownMessageHandlerNotPossible::forTask($this->id(), $messageHandler->messageHandlerId());
+        }
+
+        $this->recordThat(MessageHandlerWasDisconnected::fromTask($this->id(), $messageHandler->messageHandlerId()));
+    }
+
+    /**
+     * Deactivates the task meaning methods like updateMetadata and emulateWorkflowMessage will throw exceptions
+     * from now on!
+     */
+    public function deactivate()
+    {
+        $this->recordThat(TaskWasDeactivated::withId($this->id()));
     }
 
     /**
@@ -161,6 +201,7 @@ final class Task extends AggregateRoot
         $this->messageHandlerId = $event->messageHandlerId();
         $this->processingType = $event->processingType();
         $this->processingMetadata = $event->taskMetadata();
+        $this->active = true;
     }
 
     /**
@@ -169,5 +210,21 @@ final class Task extends AggregateRoot
     protected function whenTaskMetadataWasUpdated(TaskMetadataWasUpdated $event)
     {
         $this->processingMetadata = $event->taskMetadata();
+    }
+
+    /**
+     * @param MessageHandlerWasDisconnected $event
+     */
+    protected function whenMessageHandlerWasDisconnected(MessageHandlerWasDisconnected $event)
+    {
+        $this->messageHandlerId = null;
+    }
+
+    /**
+     * @param TaskWasDeactivated $event
+     */
+    protected function whenTaskWasDeactivated(TaskWasDeactivated $event)
+    {
+        $this->active = false;
     }
 }

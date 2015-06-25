@@ -12,8 +12,10 @@ namespace Prooph\Link\ProcessManager\Projection\Task;
 
 use Doctrine\DBAL\Connection;
 use Prooph\Link\Application\Service\ApplicationDbAware;
+use Prooph\Link\ProcessManager\Model\Task\MessageHandlerWasDisconnected;
 use Prooph\Link\ProcessManager\Model\Task\TaskId;
 use Prooph\Link\ProcessManager\Model\Task\TaskMetadataWasUpdated;
+use Prooph\Link\ProcessManager\Model\Task\TaskWasDeactivated;
 use Prooph\Link\ProcessManager\Model\Task\TaskWasSetUp;
 use Prooph\Link\ProcessManager\Model\Workflow\TaskWasAddedToProcess;
 use Prooph\Link\ProcessManager\Model\Workflow\TaskWasUnlinked;
@@ -60,6 +62,24 @@ final class TaskProjector implements ApplicationDbAware
         $this->connection->update(
             Tables::TASK,
             ['workflow_id' => null, 'process_id' => null],
+            ['id' => $event->taskId()->toString()]
+        );
+    }
+
+    public function onMessageHandlerWasDisconnected(MessageHandlerWasDisconnected $event)
+    {
+        $this->connection->update(
+            Tables::TASK,
+            ['message_handler_id' => null],
+            ['id' => $event->taskId()->toString()]
+        );
+    }
+
+    public function onTaskWasDeactivated(TaskWasDeactivated $event)
+    {
+        $this->connection->update(
+            Tables::TASK,
+            ['activated' => 0],
             ['id' => $event->taskId()->toString()]
         );
     }

@@ -10,6 +10,7 @@
  */
 namespace Prooph\Link\ProcessManager\Api;
 
+use Assert\Assertion;
 use Prooph\Link\Application\Service\AbstractRestController;
 use Prooph\Link\Application\Service\ActionController;
 use Prooph\Link\ProcessManager\Command\Workflow\UnlinkTask;
@@ -35,11 +36,26 @@ final class Task extends AbstractRestController implements ActionController
      */
     private $taskFinder;
 
+    public function get($id)
+    {
+        Assertion::uuid($id);
+
+        $task = $this->taskFinder->find($id);
+
+        if (! $task) {
+            return $this->notFoundAction();
+        }
+
+        return ['task' => $task];
+    }
+
     public function getList()
     {
         $messageHandlerId = $this->getRequest()->getQuery('message_handler_id');
 
         if ($messageHandlerId) {
+            Assertion::uuid($messageHandlerId);
+
             $taskCollection = $this->taskFinder->findTasksOfMessageHandler($messageHandlerId);
         } else {
             $taskCollection = $this->taskFinder->findAll();
@@ -59,6 +75,8 @@ final class Task extends AbstractRestController implements ActionController
 
     public function delete($id)
     {
+        Assertion::uuid($id);
+
         $task = $this->taskFinder->find($id);
 
         //@todo: here we go
