@@ -162,7 +162,18 @@
                 $btnSave.click(function (e) {
                     e.preventDefault();
 
-                    _whiteboard.detach(conn);
+                    var detachEvent = {
+                        detach_deferred : Q.defer(),
+                        source_whiteboard_id : conn.sourceId,
+                        target_whiteboard_id : conn.targetId,
+                        target_element_id    : $(conn.target).data("element-id")
+                    };
+
+                    self.trigger("connectionWillBeDetached", detachEvent);
+
+                    detachEvent.detach_deferred.promise.then(function () {
+                        _whiteboard.detach(conn);
+                    });
                 });
             }, 5);
 
@@ -236,8 +247,6 @@
         },
 
         _removeConnection = function(jsPlumbInfo) {
-            console.log("remove connection: ", jsPlumbInfo);
-
             var event = { is_start_connection : false };
 
             if (jsPlumbInfo.sourceId == "whiteboard-start-point") {

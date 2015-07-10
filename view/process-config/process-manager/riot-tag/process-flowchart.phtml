@@ -357,6 +357,34 @@
             });
         },
 
+         _onWhiteboardConnectionWillBeDetached = function (detachEvent) {
+             //@TODO: Fix unlink of start task not working
+             var targetId = detachEvent.target_element_id,
+                 handlerData = _.findWhere(_flowchartConfig.elements, {id : targetId}),
+                 responseCollection = [];
+
+             _.each(handlerData.tasks, function (task) {
+                responseCollection.push(
+                    Q($.deleteReq('<?php echo $this->url('prooph.link/process_config/api/task') ?>/' + task.id))
+                        .then(function (xhr) {
+                            handlerData.tasks = _.without(handlerData.tasks, task);
+                            return xhr;
+                        })
+                );
+             });
+
+             Q.all(responseCollection).then(function () {
+                 detachEvent.detach_deferred.resolve();
+             }, function (xhr) {
+                 $.failNotify(xhr);
+                 detachEvent.detach_deferred.reject(xhr);
+             });
+         },
+
+         _onWhiteboardConnectionWasRemoved = function (event) {
+             _updateFlowchartConfig();
+         },
+
         //Message handler operations
 
         /**
@@ -629,6 +657,8 @@
             self.tags.whiteboard.on("elementWasDropped", _onWhiteboardElementWasDropped);
             self.tags.whiteboard.on("connectorWasMovedOnWhiteboard", _updateFlowchartConfig);
             self.tags.whiteboard.on("connectionWasApplied", _onWhiteboardConnectionWasApplied);
+            self.tags.whiteboard.on("connectionWillBeDetached", _onWhiteboardConnectionWillBeDetached);
+            self.tags.whiteboard.on("connectionWasRemoved", _onWhiteboardConnectionWasRemoved);
         });
 
         this.on("unmount", function () {
